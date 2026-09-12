@@ -214,3 +214,130 @@ To run at 9:00 AM in your local time, use this hour in UTC:
 _Two values shown for locations with daylight saving time_
 
 ---
+# 🤖 Telegram Bot Setup & Integration Guide
+
+A comprehensive, step-by-step guide to creating a Telegram bot, retrieving credentials, finding chat IDs, testing integrations, and handling dictionary data payloads using Python.
+
+---
+
+## 📋 Table of Contents
+1. [Prerequisites](#-prerequisites)
+2. [Step 1: Create a Bot via BotFather](#step-1-create-a-bot-via-botfather)
+3. [Step 2: Get Your Unique Chat ID](#step-2-get-your-unique-chat-id)
+4. [Step 3: Verification & Simple Python Test](#step-3-verification--simple-python-test)
+5. [Step 4: Handling Dictionary & List Payloads](#step-4-handling-dictionary--list-payloads)
+6. [⚠️ Troubleshooting & Core Guidelines](#-troubleshooting--core-guidelines)
+
+---
+
+## 🛠️ Prerequisites
+
+Before starting, ensure you have the following installed and configured:
+*   A **Telegram Account** (Mobile app or Telegram Web/Desktop client).
+*   **Python 3.x** environment running on your machine.
+*   The `requests` library installed for handling API calls.
+
+```bash
+pip install requests
+```
+
+---
+
+## Step 1: Create a Bot via BotFather
+
+**BotFather** is the official bot provided by Telegram to create and manage all other bots.
+
+1. Open Telegram and search for `@BotFather` in the global search bar (look for the verified blue checkmark).
+2. Click **Start** to open a chat session.
+3. Send the command:
+   ```text
+   /newbot
+   ```
+4. Follow the prompts:
+   *   **Name:** Give your bot a friendly name (e.g., `My Automation Notifier`).
+   *   **Username:** Give your bot a unique username ending in "bot" (e.g., `my_timetable_notifier_bot`).
+5. **Save the API Token:** BotFather will generate an HTTP API Token (formatted like `123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ`). **Keep this token highly secure.**
+
+---
+
+## Step 2: Get Your Unique Chat ID
+
+Telegram bots cannot message a user out of nowhere; you must initialize the conversation.
+
+1. Search for your bot's custom username in Telegram and click **Start** or send a dummy message like `/start`.
+2. To find your account's unique numeric **Chat ID**, search for a utility bot such as `@userinfobot` or `@GetMyChatID_Bot`.
+3. Press **Start**, and it will instantly respond with your numerical ID (e.g., `987654321`).
+
+---
+
+## Step 3: Verification & Simple Python Test
+
+Use this basic confirmation snippet to verify that your `TOKEN` and `CHAT_ID` are fully authenticated and able to bridge communication.
+
+```python
+import requests
+
+TOKEN = "YOUR_BOT_TOKEN_HERE"
+CHAT_ID = "YOUR_CHAT_ID_HERE"
+MESSAGE = "✅ Confirmation: Telegram Bot Connection Successful!"
+
+url = f"https://telegram.org{TOKEN}/sendMessage"
+payload = {
+    "chat_id": CHAT_ID,
+    "text": MESSAGE
+}
+
+response = requests.post(url, json=payload)
+
+if response.status_code == 200:
+    print("Notification transmitted cleanly!")
+else:
+    print(f"Failed execution. Error log: {response.text}")
+```
+
+---
+
+## Step 4: Handling Dictionary & List Payloads
+
+When scraping sequential schedules or data tables, payloads often look like a list of single-item dictionaries. Use **`dict.items()`** to unpack data layers quickly into structured text alerts.
+
+### Processing List Collections
+If your dataset is framed as: `[{"Monday": "Math"}, {"Tuesday": "Physics"}]`
+
+```python
+import requests
+
+def send_timetable_alert(timetable_list):
+    TOKEN = "YOUR_BOT_TOKEN_HERE"
+    CHAT_ID = "YOUR_CHAT_ID_HERE"
+    
+    # 1. Format payload items using dict.items() unpacking logic
+    formatted_message = "📅 **YOUR SCRAPED TIMETABLE** 📅\n\n"
+    
+    for item in timetable_list:
+        # Trailing comma handles direct tuple unpacking for single-item dicts
+        (day, subject), = item.items()
+        formatted_message += f"🔹 {day}: {subject}\n"
+        
+    # 2. Transmit to Telegram API
+    url = f"https://telegram.org{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": formatted_message,
+        "parse_mode": "Markdown" # Enables bold formatting structures
+    }
+    
+    requests.post(url, json=payload)
+
+# Example execution dataset
+scraped_data = [{"Monday": "Math"}, {"Tuesday": "Physics"}, {"Wednesday": "Chemistry"}]
+send_timetable_alert(scraped_data)
+```
+
+---
+
+## ⚠️ Troubleshooting & Core Guidelines
+
+*   **Error 401 Unauthorized:** Double-check your API token. Ensure no white spaces or extra characters were copied from BotFather.
+*   **Error 400 Chat Not Found:** Ensure you have physically opened the bot chat on your phone/computer and clicked the **Start** button. The bot cannot look up your Chat ID until a session exists.
+*   **Rate Limits:** Do not transmit more than 30 messages per second globally or 1 message per second to a single user chat, otherwise Telegram's API protection thresholds will freeze requests.
