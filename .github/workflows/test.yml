@@ -23,32 +23,41 @@ jobs:
 
       - name: Check secrets are configured
         env:
-          OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
-          TW_AUTH_TOKEN: ${{ secrets.TW_AUTH_TOKEN }}
-          MY_PN: ${{ secrets.MY_PN }}
+          USER_NAME: ${{ secrets.USER_NAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
         run: |
-          if [ -z "$OWM_API_KEY" ]; then
-            echo "OWM_API_KEY secret is not set!"
+          if [ -z "$USER_NAME" ]; then
+            echo "USER_NAME secret is not set!"
             echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
-            echo "OWM_API_KEY is configured"
+            echo "USER_NAME is configured"
           fi
 
-          if [ -z "$TW_AUTH_TOKEN" ]; then
-            echo "TW_AUTH_TOKEN secret is not set!"
+          if [ -z "$PASSWORD" ]; then
+            echo "PASSWORD secret is not set!"
             echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
-            echo "TW_AUTH_TOKEN is configured"
+            echo "PASSWORD is configured"
           fi
 
-          if [ -z "$MY_PN" ]; then
-            echo "MY_PN secret is not set!"
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "BOT_TOKEN secret is not set!"
             echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
-            echo "MY_PN is configured"
+            echo "BOT_TOKEN is configured"
+          fi
+          
+          if [ -z "$CHAT_ID" ]; then
+            echo "CHAT_ID secret is not set!"
+            echo "Go to Settings > Secrets > Actions and add it."
+            exit 1
+          else
+            echo "CHAT_ID is configured"
           fi
 
           echo ""
