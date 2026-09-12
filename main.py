@@ -1,40 +1,129 @@
-from twilio.rest import Client
+from selenium import webdriver
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import requests
+import time
+from datetime import datetime as dt
 import os
 
+# ------------------------ MY CREDENTIALS ----------------------------
+USER_NAME = os.environ.get('USER_NAME')
+PASSWORD = os.environ.get('PASSWORD')
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+CHAT_ID = os.environ.get('CHAT_ID')
 
-WEATHER_API_KEY = os.environ.get("OWM_API_KEY")
-LAT = 28.6650
-LON = 77.4485
-ACCOUNT_SID = "ACf511788dffdebc770d7afd6f37bd1418"
-AUTH_TOKEN = os.environ.get("TW_AUTH_TOKEN")
-TWILIO_PHONE_NUMBER = "+19346491425"
-MY_PHONE_NUMBER = os.environ.get("MY_PN")
+# ------------------------ SETTING UP CHROME -------------------------
+chrome_options = uc.ChromeOptions()
+chrome_options.add_experimental_option('prefs', {
+    "credentials_enable_service": False,
+    "profile.password_manager_enabled": False
+})
 
-parameters = {
-    "lat": LAT,
-    "lon": LON,
-    "appid": WEATHER_API_KEY,
-    "cnt": 4,
-    "units": "metric"
+driver = uc.Chrome(options=chrome_options)
+driver.get('https://s.amizone.net/')
+time.sleep(2)
+
+wait = WebDriverWait(driver, 10)
+
+# ------------------------ NETWORK RESELIANCE --------------------------
+
+
+def retry(func, retries=3, description=None):
+    for i in range(retries):
+        print(f"Trying {description}. Attempt: {i + 1}")
+        try:
+            return func()
+        except TimeoutException:
+            if i == retries - 1:
+                raise
+            time.sleep(1)
+
+# ------------------------- LOGIN --------------------------------------
+
+
+def login():
+    user_name_input = wait.until(ec.visibility_of_element_located((By.NAME, '_UserName')))
+    user_name_input.clear()
+    user_name_input.send_keys(USER_NAME)
+
+    password_input = wait.until(ec.visibility_of_element_located((By.NAME, '_Password')))
+    password_input.clear()
+    password_input.send_keys(PASSWORD)
+
+    # give time to captcha
+    time.sleep(3)
+
+    login_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
+    login_button.click()
+
+    print("You are logged in.")
+
+    time.sleep(2)
+
+
+retry(login, description="to Connect.")
+# ------------------------ REMOVE POP UP ---------------------------------
+
+
+driver.execute_script("""
+    var modals = document.querySelectorAll('.modal, .modal-backdrop, [class*="popup"], [id*="popup"], div[style*="z-index"]');
+    for (var i = 0; i < modals.length; i++) {
+        modals[i].remove();
+    }
+""")
+time.sleep(1)
+
+# ------------------------- GO TO THE TIME TABLE SECTION -------------------
+calendar = wait.until(ec.visibility_of_element_located((By.ID, 'calendar')))
+
+date = calendar.find_element(By.CSS_SELECTOR, 'div.fc-center h2').text
+
+try:
+    day = calendar.find_element(By.CSS_SELECTOR, 'span.fc-list-heading-main').text
+except NoSuchElementException:
+    today = dt.today()
+    day = today.strftime("%A")
+
+
+time_table_elements = calendar.find_elements(By.CSS_SELECTOR, 'tr[class^="fc-list-item"]')
+
+time_table = []
+if time_table_elements:
+    for classes in time_table_elements:
+        time_table_info = {
+            classes.find_element(By.CSS_SELECTOR, 'td.fc-list-item-time').text:
+                classes.find_element(By.CSS_SELECTOR, 'td.fc-list-item-title > a').text
+        }
+        time_table.append(time_table_info)
+
+
+driver.quit()
+# ------------------------------ SENDING THE DATA TO TELEGRAM ------------------------------
+# if the time table is empty it is day off no classes
+message = f"DATE:{date}\nDAY:{day}\n📆 Today's TimeTable 📆\n\n"
+if not time_table:
+    message += f"💤Stay in Bed it's off Today 🛌\n"
+else:
+    for entry in time_table:
+        for time, details in entry.items():
+            message += f"⏰ {time} \n {details}\n\n"
+
+# endpoint URL
+URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+
+data = {
+    "chat_id": CHAT_ID,
+    "text": message,
+    "parse_mode": "Markdown"
 }
+response = requests.post(url=URL, json=data)
+if response.status_code == 200:
+    print("Message Sent Successfully.")
+else:
+    print(f"❌Failed to Send Message. Error {response.text}")
 
-response = requests.get(url="http://api.openweathermap.org/data/2.5/forecast", params=parameters)
-response.raise_for_status()
-data = response.json()
-
-count = data["cnt"]
-
-timestamp_codes = [data["list"][i]["weather"][0]["id"] for i in range(0, count)]
-
-
-if any(code < 600 for code in timestamp_codes):
-    client = Client(ACCOUNT_SID, AUTH_TOKEN)
-
-    message = client.messages.create(
-        from_='whatsapp:+14155238886',
-        body="It's Going to Rain Today, Bring out the Umbrellas.🌧️☔️",
-        to='whatsapp:+919871871250'
-    )
-    print(message.status)
 
