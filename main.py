@@ -34,7 +34,7 @@ options.add_experimental_option(
     }
 )
 
-driver = uc.Chrome(options=options)
+driver = uc.Chrome(options=options, version_main=152)
 wait = WebDriverWait(driver, 20)
 
 
