@@ -71,6 +71,12 @@ def login():
     print("You are logged in.")
 
     time.sleep(2)
+
+    wait.until(
+        ec.presence_of_element_located((By.ID, 'calendar'))
+    )
+
+    print("You are logged in and timetable loaded.")
     
 
 
@@ -88,7 +94,17 @@ driver.execute_script("""
 time.sleep(1)
 
 # ------------------------- GO TO THE TIME TABLE SECTION -------------------
-calendar = wait.until(ec.visibility_of_element_located((By.ID, 'calendar')))
+print("Current URL:", driver.current_url)
+print("Page title:", driver.title)
+
+driver.save_screenshot("after_login.png")
+
+with open("after_login.html", "w", encoding="utf-8") as f:
+    f.write(driver.page_source)
+
+print("Calendar exists:", len(driver.find_elements(By.ID, "calendar")) > 0)
+
+calendar = wait.until(ec.presence_of_element_located((By.ID, 'calendar')))
 
 date = calendar.find_element(By.CSS_SELECTOR, 'div.fc-center h2').text
 
