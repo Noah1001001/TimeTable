@@ -25,7 +25,7 @@ chrome_options.add_experimental_option('prefs', {
     "credentials_enable_service": False, 
     "profile.password_manager_enabled": False 
 })
-driver = uc.Chrome(options=chrome_options)
+driver = uc.Chrome(options=chrome_options, version_main=152)
 
 chrome_options.add_experimental_option('prefs', {
     "credentials_enable_service": False,
