@@ -71,6 +71,10 @@ def login():
     print("You are logged in.")
 
     time.sleep(2)
+    
+    wait.until(
+        ec.presence_of_element_located((By.ID, 'calendar'))
+    )
 
 
 retry(login, description="to Connect.")
