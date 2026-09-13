@@ -63,7 +63,7 @@ def login():
     password_input.send_keys(PASSWORD)
 
     # give time to captcha
-    time.sleep(3)
+    time.sleep(5)
 
     login_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
     login_button.click()
@@ -75,6 +75,20 @@ def login():
     wait.until(
         ec.presence_of_element_located((By.ID, 'calendar'))
     )
+    time.sleep(5)
+
+    print("Current URL:", driver.current_url)
+    print("Page title:", driver.title)
+
+    print(
+        "Calendar exists:",
+        len(driver.find_elements(By.ID, "calendar")) > 0
+    )
+
+    driver.save_screenshot("after_login.png")
+
+    with open("after_login.html", "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
 
 
 retry(login, description="to Connect.")
