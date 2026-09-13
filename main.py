@@ -1,165 +1,172 @@
-from selenium import webdriver
+import os
+import time
+import requests
 import undetected_chromedriver as uc
+
+from datetime import datetime as dt
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import requests
-import time
-from datetime import datetime as dt
-import os
-
-# ------------------------ MY CREDENTIALS ----------------------------
-USER_NAME = os.environ.get('USER_NAME')
-PASSWORD = os.environ.get('PASSWORD')
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
-CHAT_ID = os.environ.get('CHAT_ID')
-
-# ------------------------ SETTING UP CHROME -------------------------
-chrome_options = uc.ChromeOptions()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_experimental_option('prefs', {
-    "credentials_enable_service": False, 
-    "profile.password_manager_enabled": False 
-})
-
-chrome_options.add_experimental_option('prefs', {
-    "credentials_enable_service": False,
-    "profile.password_manager_enabled": False
-})
-
-driver = uc.Chrome(options=chrome_options, version_main=152)
-driver.get('https://s.amizone.net/')
-time.sleep(2)
-
-wait = WebDriverWait(driver, 10)
-
-# ------------------------ NETWORK RESELIANCE --------------------------
+from selenium.common.exceptions import TimeoutException
 
 
-def retry(func, retries=3, description=None):
-    for i in range(retries):
-        print(f"Trying {description}. Attempt: {i + 1}")
-        try:
-            return func()
-        except TimeoutException:
-            if i == retries - 1:
-                raise
-            time.sleep(1)
+# ------------------------ CREDENTIALS ------------------------
 
-# ------------------------- LOGIN --------------------------------------
+USER_NAME = os.environ["USER_NAME"]
+PASSWORD = os.environ["PASSWORD"]
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
 
+
+# ------------------------ CHROME SETUP ------------------------
+
+options = uc.ChromeOptions()
+options.add_argument("--headless=new")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--window-size=1920,1080")
+
+options.add_experimental_option(
+    "prefs",
+    {
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False
+    }
+)
+
+driver = uc.Chrome(options=options)
+wait = WebDriverWait(driver, 20)
+
+
+# ------------------------ LOGIN ------------------------
 
 def login():
-    user_name_input = wait.until(ec.visibility_of_element_located((By.NAME, '_UserName')))
-    user_name_input.clear()
-    user_name_input.send_keys(USER_NAME)
+    driver.get("https://s.amizone.net/")
 
-    password_input = wait.until(ec.visibility_of_element_located((By.NAME, '_Password')))
-    password_input.clear()
-    password_input.send_keys(PASSWORD)
+    username = wait.until(
+        ec.visibility_of_element_located(
+            (By.NAME, "_UserName")
+        )
+    )
+    username.send_keys(USER_NAME)
 
-    # give time to captcha
-    time.sleep(5)
+    password = wait.until(
+        ec.visibility_of_element_located(
+            (By.NAME, "_Password")
+        )
+    )
+    password.send_keys(PASSWORD)
 
-    login_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
+    login_button = wait.until(
+        ec.element_to_be_clickable(
+            (By.CSS_SELECTOR, 'button[type="submit"]')
+        )
+    )
     login_button.click()
 
-    print("You are logged in.")
-
-    time.sleep(2)
+    time.sleep(5)
 
     print("Current URL:", driver.current_url)
-    print("Page title:", driver.title)
 
-    print(
-        "Calendar exists:",
-        len(driver.find_elements(By.ID, "calendar")) > 0
-    )
-
+    # Save debug files if login does not work
     driver.save_screenshot("after_login.png")
 
-    with open("after_login.html", "w", encoding="utf-8") as f:
-        f.write(driver.page_source)
-
-    print("Debug files saved.")
-    
+    with open("after_login.html", "w", encoding="utf-8") as file:
+        file.write(driver.page_source)
 
 
+# ------------------------ GET TIMETABLE ------------------------
 
-retry(login, description="to Connect.")
-# ------------------------ REMOVE POP UP ---------------------------------
+def get_timetable():
+    calendar = wait.until(
+        ec.presence_of_element_located(
+            (By.ID, "calendar")
+        )
+    )
+
+    try:
+        date = calendar.find_element(
+            By.CSS_SELECTOR,
+            "div.fc-center h2"
+        ).text
+    except:
+        date = dt.today().strftime("%d %B %Y")
+
+    try:
+        day = calendar.find_element(
+            By.CSS_SELECTOR,
+            "span.fc-list-heading-main"
+        ).text
+    except:
+        day = dt.today().strftime("%A")
+
+    timetable = []
+
+    rows = calendar.find_elements(
+        By.CSS_SELECTOR,
+        "tr[class^='fc-list-item']"
+    )
+
+    for row in rows:
+        try:
+            class_time = row.find_element(
+                By.CSS_SELECTOR,
+                "td.fc-list-item-time"
+            ).text
+
+            class_name = row.find_element(
+                By.CSS_SELECTOR,
+                "td.fc-list-item-title > a"
+            ).text
+
+            timetable.append(
+                f"⏰ {class_time}\n{class_name}\n"
+            )
+
+        except:
+            continue
+
+    return date, day, timetable
 
 
-driver.execute_script("""
-    var modals = document.querySelectorAll('.modal, .modal-backdrop, [class*="popup"], [id*="popup"], div[style*="z-index"]');
-    for (var i = 0; i < modals.length; i++) {
-        modals[i].remove();
-    }
-""")
-time.sleep(1)
+# ------------------------ SEND TELEGRAM MESSAGE ------------------------
 
-# ------------------------- GO TO THE TIME TABLE SECTION -------------------
-print("Current URL:", driver.current_url)
-print("Page title:", driver.title)
+def send_message(date, day, timetable):
+    message = (
+        f"DATE: {date}\n"
+        f"DAY: {day}\n"
+        f"📆 Today's TimeTable 📆\n\n"
+    )
 
-driver.save_screenshot("after_login.png")
+    if not timetable:
+        message += "💤 Stay in Bed, it's off today 🛌"
 
-with open("after_login.html", "w", encoding="utf-8") as f:
-    f.write(driver.page_source)
+    else:
+        message += "\n".join(timetable)
 
-print("Calendar exists:", len(driver.find_elements(By.ID, "calendar")) > 0)
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-calendar = wait.until(ec.presence_of_element_located((By.ID, 'calendar')))
+    response = requests.post(
+        url,
+        json={
+            "chat_id": CHAT_ID,
+            "text": message
+        },
+        timeout=30
+    )
 
-date = calendar.find_element(By.CSS_SELECTOR, 'div.fc-center h2').text
+    if response.status_code == 200:
+        print("Message sent successfully.")
+    else:
+        print("Telegram error:", response.text)
+
+
+# ------------------------ MAIN ------------------------
 
 try:
-    day = calendar.find_element(By.CSS_SELECTOR, 'span.fc-list-heading-main').text
-except NoSuchElementException:
-    today = dt.today()
-    day = today.strftime("%A")
+    login()
+    date, day, timetable = get_timetable()
+    send_message(date, day, timetable)
 
-
-time_table_elements = calendar.find_elements(By.CSS_SELECTOR, 'tr[class^="fc-list-item"]')
-
-time_table = []
-if time_table_elements:
-    for classes in time_table_elements:
-        time_table_info = {
-            classes.find_element(By.CSS_SELECTOR, 'td.fc-list-item-time').text:
-                classes.find_element(By.CSS_SELECTOR, 'td.fc-list-item-title > a').text
-        }
-        time_table.append(time_table_info)
-
-
-driver.quit()
-# ------------------------------ SENDING THE DATA TO TELEGRAM ------------------------------
-# if the time table is empty it is day off no classes
-message = f"DATE:{date}\nDAY:{day}\n📆 Today's TimeTable 📆\n\n"
-if not time_table:
-    message += f"💤Stay in Bed it's off Today 🛌\n"
-else:
-    for entry in time_table:
-        for time, details in entry.items():
-            message += f"⏰ {time} \n {details}\n\n"
-
-# endpoint URL
-URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-
-
-data = {
-    "chat_id": CHAT_ID,
-    "text": message,
-    "parse_mode": "Markdown"
-}
-response = requests.post(url=URL, json=data)
-if response.status_code == 200:
-    print("Message Sent Successfully.")
-else:
-    print(f"❌Failed to Send Message. Error {response.text}")
-
-
+finally:
+    driver.quit()
