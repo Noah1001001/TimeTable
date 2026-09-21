@@ -15,11 +15,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Python dependencies
+      - name: Set up Virtual Environment & Install Dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
-          python3 -m pip install --upgrade undetected-chromedriver selenium requests
+          python3 -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install --upgrade undetected-chromedriver selenium requests
 
       - name: Run script
         env:
@@ -27,7 +29,9 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: python3 main.py
+        run: |
+          source venv/bin/activate
+          python main.py
 
       - name: Upload Debug Artifacts on Failure
         if: failure()
