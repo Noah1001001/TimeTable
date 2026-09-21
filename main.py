@@ -60,6 +60,17 @@ def retry(func, retries=3, description=None):
 def login():
     print("Starting login function...")
 
+    driver.execute_script("""
+        var event = new MouseEvent('mousemove', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true
+        });
+        document.dispatchEvent(event);
+    """)
+    
+    time.sleep(1)
+
     # Fill Username
     user_name_input = wait.until(ec.visibility_of_element_located((By.NAME, '_UserName')))
     user_name_input.clear()
