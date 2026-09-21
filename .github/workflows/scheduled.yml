@@ -3,7 +3,7 @@ name: Daily Script
 on:
   schedule:
     # '30 3 * * *' = 3:30 AM UTC daily (9:00 AM IST)
-    - cron: '30 3 * * *'
+    - cron: '15 3 * * *'
 
   workflow_dispatch:
 
