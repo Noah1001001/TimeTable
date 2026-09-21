@@ -5,7 +5,6 @@ on:
     # '30 3 * * *' = 3:30 AM UTC daily (9:00 AM IST)
     - cron: '30 3 * * *'
 
-  # Allows manual triggering from the GitHub Actions tab
   workflow_dispatch:
 
 jobs:
@@ -16,16 +15,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install --upgrade undetected-chromedriver selenium requests
+          python3 -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
+          python3 -m pip install --upgrade undetected-chromedriver selenium requests
 
       - name: Run script
         env:
@@ -33,7 +27,7 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: python main.py
+        run: python3 main.py
 
       - name: Upload Debug Artifacts on Failure
         if: failure()
