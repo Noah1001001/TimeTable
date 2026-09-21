@@ -19,6 +19,8 @@ CHAT_ID = os.environ["CHAT_ID"]
 
 
 # ------------------------ SETTING UP CHROME -------------------------
+
+# ------------------------ SETTING UP CHROME -------------------------
 chrome_options = uc.ChromeOptions()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
@@ -58,63 +60,33 @@ def retry(func, retries=3, description=None):
 
 
 def login():
+
     print("Starting login function...")
 
-    driver.execute_script("""
-        var event = new MouseEvent('mousemove', {
-            'view': window,
-            'bubbles': true,
-            'cancelable': true
-        });
-        document.dispatchEvent(event);
-    """)
-    
-    time.sleep(1)
+    # 1. Reload page cleanly so every retry start with fresh inputs
+    driver.get('https://s.amizone.net/')
+    time.sleep(2)
 
-    # Fill Username
-    user_name_input = wait.until(ec.visibility_of_element_located((By.NAME, '_UserName')))
+    # 2. Fill Username & Password
+    user_name_input = wait.until(ec.presence_of_element_located((By.NAME, '_UserName')))
     user_name_input.clear()
     user_name_input.send_keys(USER_NAME)
-    print("Username filled.")
 
-    # Fill Password
-    password_input = wait.until(ec.visibility_of_element_located((By.NAME, '_Password')))
+    password_input = wait.until(ec.presence_of_element_located((By.NAME, '_Password')))
     password_input.clear()
     password_input.send_keys(PASSWORD)
-    print("Password filled.")
 
-    time.sleep(1)
+    # 3. Give Cloudflare Turnstile time to auto-verify on your residential IP
+    time.sleep(3)
 
-    # Click submit via JavaScript to avoid overlay interference
+    # 4. Click Submit
     login_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
-    driver.execute_script("arguments[0].click();", login_button)
-    print("Login button clicked via JS.")
+    login_button.click()
+    print("Login button clicked.")
 
-    # Wait for session auth & force-navigate to Home dashboard
-    time.sleep(5)
-    driver.get("https://s.amizone.net/Home")
-
-    # Catch failure explicitly to guarantee artifacts are saved
-    try:
-        wait.until(ec.presence_of_element_located((By.ID, 'calendar')))
-        print("Logged in successfully. Calendar found.")
-    except TimeoutException:
-        print("❌ Calendar not found. Saving debug files...")
-        driver.save_screenshot("debug_failure.png")
-        with open("page_source.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-        print(f"Current Page URL: {driver.current_url}")
-        print(f"Current Page Title: {driver.title}")
-        raise
-
-    # driver.execute_script("""
-    #     var modals = document.querySelectorAll('.modal, .modal-backdrop, [class*="popup"], [id*="popup"], div[style*="z-index"]');
-    #     for (var i = 0; i < modals.length; i++) {
-    #         modals[i].remove();
-    #     }
-    # """)
-
-    # time.sleep(2)
+    # 5. Wait for redirect to calendar
+    wait.until(ec.presence_of_element_located((By.ID, 'calendar')))
+    print("You are logged in.")
 
 
 retry(login, description="to Connect.")
@@ -192,3 +164,5 @@ if response.status_code == 200:
     print("Message Sent Successfully.")
 else:
     print(f"❌Failed to Send Message. Error {response.text}")
+
+
