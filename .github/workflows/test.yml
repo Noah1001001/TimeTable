@@ -11,16 +11,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install --upgrade undetected-chromedriver selenium requests
+          python3 -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
+          python3 -m pip install --upgrade undetected-chromedriver selenium requests
 
       - name: Check secrets are configured
         env:
@@ -31,7 +26,6 @@ jobs:
         run: |
           if [ -z "$USER_NAME" ]; then
             echo "USER_NAME secret is not set!"
-            echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
             echo "USER_NAME is configured"
@@ -39,7 +33,6 @@ jobs:
 
           if [ -z "$PASSWORD" ]; then
             echo "PASSWORD secret is not set!"
-            echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
             echo "PASSWORD is configured"
@@ -47,7 +40,6 @@ jobs:
 
           if [ -z "$BOT_TOKEN" ]; then
             echo "BOT_TOKEN secret is not set!"
-            echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
             echo "BOT_TOKEN is configured"
@@ -55,7 +47,6 @@ jobs:
 
           if [ -z "$CHAT_ID" ]; then
             echo "CHAT_ID secret is not set!"
-            echo "Go to Settings > Secrets > Actions and add it."
             exit 1
           else
             echo "CHAT_ID is configured"
@@ -86,7 +77,7 @@ jobs:
           echo "All required files found!"
 
       - name: Test Python syntax
-        run: python -m py_compile main.py && echo "Python syntax OK"
+        run: python3 -m py_compile main.py && echo "Python syntax OK"
 
       - name: Success
         run: |
