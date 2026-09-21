@@ -60,35 +60,41 @@ def retry(func, retries=3, description=None):
 def login():
     print("Starting login function...")
 
+    # Fill Username
     user_name_input = wait.until(ec.visibility_of_element_located((By.NAME, '_UserName')))
-    print("Username field found.")
-
     user_name_input.clear()
     user_name_input.send_keys(USER_NAME)
     print("Username filled.")
 
+    # Fill Password
     password_input = wait.until(ec.visibility_of_element_located((By.NAME, '_Password')))
-    print("Password field found.")
-
     password_input.clear()
     password_input.send_keys(PASSWORD)
     print("Password filled.")
 
-    # give time to captcha
-    time.sleep(3)
+    time.sleep(1)
 
+    # Click submit via JavaScript to avoid overlay interference
     login_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
-    login_button.click()
-    print("Login button clicked.")
+    driver.execute_script("arguments[0].click();", login_button)
+    print("Login button clicked via JS.")
 
+    # Wait for session auth & force-navigate to Home dashboard
+    time.sleep(5)
+    driver.get("https://s.amizone.net/Home")
 
-    time.sleep(2)
-
-    wait.until(
-        ec.presence_of_element_located((By.ID, 'calendar'))
-    )
-
-    print("You are logged in.")
+    # Catch failure explicitly to guarantee artifacts are saved
+    try:
+        wait.until(ec.presence_of_element_located((By.ID, 'calendar')))
+        print("Logged in successfully. Calendar found.")
+    except TimeoutException:
+        print("❌ Calendar not found. Saving debug files...")
+        driver.save_screenshot("debug_failure.png")
+        with open("page_source.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
+        print(f"Current Page URL: {driver.current_url}")
+        print(f"Current Page Title: {driver.title}")
+        raise
 
     # driver.execute_script("""
     #     var modals = document.querySelectorAll('.modal, .modal-backdrop, [class*="popup"], [id*="popup"], div[style*="z-index"]');
