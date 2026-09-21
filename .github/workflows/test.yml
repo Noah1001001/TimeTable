@@ -2,25 +2,25 @@ name: Test Setup
 
 on:
   workflow_dispatch:  # Manual trigger only
-  
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install --upgrade undetected-chromedriver
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install --upgrade undetected-chromedriver selenium requests
 
       - name: Check secrets are configured
         env:
@@ -52,7 +52,7 @@ jobs:
           else
             echo "BOT_TOKEN is configured"
           fi
-          
+
           if [ -z "$CHAT_ID" ]; then
             echo "CHAT_ID secret is not set!"
             echo "Go to Settings > Secrets > Actions and add it."
